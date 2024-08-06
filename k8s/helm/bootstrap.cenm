@@ -125,14 +125,17 @@ then
     helm install "${releasePrefix}"-idman-ip idman-ip --set prefix="${releasePrefix}"
 fi
 
-if [ -z "${notaryServiceName}" ]
-then
-    notaryServiceAllocate=true
-    notaryServiceName="${releasePrefix}"-notary-ip
-    announce "Triggering public IP allocation for Notary"
-    printf "COMMAND: helm install %s-notary-ip notary-ip --set prefix=%s\n\n" "${releasePrefix}" "${releasePrefix}"
-    helm install "${releasePrefix}"-notary-ip notary-ip --set prefix="${releasePrefix}"
-fi
+# Comment out for network migration steps #
+# -------------------------------------------------------------------------------------------------------- #
+# if [ -z "${notaryServiceName}" ]
+# then
+#     notaryServiceAllocate=true
+#     notaryServiceName="${releasePrefix}"-notary-ip
+#     announce "Triggering public IP allocation for Notary"
+#     printf "COMMAND: helm install %s-notary-ip notary-ip --set prefix=%s\n\n" "${releasePrefix}" "${releasePrefix}"
+#     helm install "${releasePrefix}"-notary-ip notary-ip --set prefix="${releasePrefix}"
+# fi
+# -------------------------------------------------------------------------------------------------------- #
 
 # Run HSM helm chart first to give more time for IP allocation for Identity Manager above
 
@@ -192,36 +195,39 @@ announce "Bootstrapping CENM Identity Manager service"
 printf "COMMAND: helm install %s-idman idman --set prefix=%s --set acceptLicense=%s\n\n" "${releasePrefix}" "${releasePrefix}" "${acceptLicense}"
 helm install "${releasePrefix}"-idman idman --set prefix="${releasePrefix}" --set acceptLicense="${acceptLicense}"
 
-if [ "${notaryServiceAllocate}" == "true" ]
-then
-    announce "Waiting until cloud provider has allocated public IP for Notary (it may take a few minutes)"
-    notaryStartTime=${SECONDS}
-else    
-    announce "Checking public IP allocated for Notary"
-fi    
+# Comment out for network migration steps #
+# -------------------------------------------------------------------------------------------------------- #
+# if [ "${notaryServiceAllocate}" == "true" ]
+# then
+#     announce "Waiting until cloud provider has allocated public IP for Notary (it may take a few minutes)"
+#     notaryStartTime=${SECONDS}
+# else    
+#     announce "Checking public IP allocated for Notary"
+# fi    
 
-while [ -z "${notaryPublicIP}" ]
-do
-    notaryPublicIP=$(kubectl get svc "${notaryServiceName}" -o jsonpath='{.status.loadBalancer.ingress[0].*}')
-    # if notaryPublicIP has some value don't print anything on the screen
-    if [ -z "${notaryPublicIP}" ]
-    then
-        printf "."
-        sleep 5
-    else
-        printf "\nnotaryPublicIP = %s\n" "${notaryPublicIP}"
-    fi
-done
-# show elapsed time only if you allocated new IP
-if [ -n "${notaryStartTime}" ]
-then
-    elapsedTime=$((SECONDS - notaryStartTime))
-    printf "Public IP allocation elapsed time: %s seconds (~ %s minutes)\n\n" "$((elapsedTime))" "$((elapsedTime/60%60))"
-fi
+# while [ -z "${notaryPublicIP}" ]
+# do
+#     notaryPublicIP=$(kubectl get svc "${notaryServiceName}" -o jsonpath='{.status.loadBalancer.ingress[0].*}')
+#     # if notaryPublicIP has some value don't print anything on the screen
+#     if [ -z "${notaryPublicIP}" ]
+#     then
+#         printf "."
+#         sleep 5
+#     else
+#         printf "\nnotaryPublicIP = %s\n" "${notaryPublicIP}"
+#     fi
+# done
+# # show elapsed time only if you allocated new IP
+# if [ -n "${notaryStartTime}" ]
+# then
+#     elapsedTime=$((SECONDS - notaryStartTime))
+#     printf "Public IP allocation elapsed time: %s seconds (~ %s minutes)\n\n" "$((elapsedTime))" "$((elapsedTime/60%60))"
+# fi
 
-announce "Bootstrapping Notary service"
-printf "COMMAND: helm install %s-notary notary --set notaryPublicIP=%s --set prefix=%s --set mpv=%s --set acceptLicense=%s\n\n" "${releasePrefix}" "${notaryPublicIP}" "${releasePrefix}" "${minimumPV}" "${acceptLicense}"
-helm install "${releasePrefix}"-notary notary --set notaryPublicIP="${notaryPublicIP}" --set prefix="${releasePrefix}" --set mpv="${minimumPV}" --set acceptLicense="${acceptLicense}"
+# announce "Bootstrapping Notary service"
+# printf "COMMAND: helm install %s-notary notary --set notaryPublicIP=%s --set prefix=%s --set mpv=%s --set acceptLicense=%s\n\n" "${releasePrefix}" "${notaryPublicIP}" "${releasePrefix}" "${minimumPV}" "${acceptLicense}"
+# helm install "${releasePrefix}"-notary notary --set notaryPublicIP="${notaryPublicIP}" --set prefix="${releasePrefix}" --set mpv="${minimumPV}" --set acceptLicense="${acceptLicense}"
+# -------------------------------------------------------------------------------------------------------- #
 
 announce "Bootstrapping CENM Network Map service"
 printf "COMMAND: helm install %s-nmap nmap --set prefix=%s --set acceptLicense=%s\n\n" "${releasePrefix}" "${releasePrefix}" "${acceptLicense}" 

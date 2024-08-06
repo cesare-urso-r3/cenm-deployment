@@ -41,6 +41,22 @@ then
     echo "Going to sleep for requested ${HOW_LONG} seconds to let you login and investigate."
     echo
 else
+    # Network migration steps #
+    # -------------------------------------------------------------------------------------------------------- #
+    sha256sum ./DATA/trust-stores/network-root-truststore.jks
+    echo "Waiting for ./DATA/trust-stores/merged_network-root-truststore.jks"
+    until [ -f ./DATA/trust-stores/merged_network-root-truststore.jks ]
+    do
+        sleep 2
+    done
+    echo "updating network-root-truststore files"
+    sha256sum ./DATA/trust-stores/network-root-truststore.jks
+    mv ./DATA/trust-stores/network-root-truststore.jks ./DATA/trust-stores/new_network-root-truststore.jks
+    sha256sum ./DATA/trust-stores/new_network-root-truststore.jks
+    sha256sum ./DATA/trust-stores/merged_network-root-truststore.jks
+    mv ./DATA/trust-stores/merged_network-root-truststore.jks ./DATA/trust-stores/network-root-truststore.jks
+    sha256sum ./DATA/trust-stores/network-root-truststore.jks
+    # -------------------------------------------------------------------------------------------------------- #
     touch ./DATA/PKITOOL-DONE
     ls -al ./DATA/
     HOW_LONG=0

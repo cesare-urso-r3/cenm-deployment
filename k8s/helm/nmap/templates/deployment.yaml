@@ -37,6 +37,7 @@ spec:
             cp CM/*.conf etc/
             cp CM/*.sh bin/
             chmod +x bin/*
+            mkdir -p /opt/cenm/notary-nodeinfo
             ls -alR
             bin/getZoneToken.sh
           resources:
@@ -50,8 +51,8 @@ spec:
           - name: nmap-conf
             mountPath: /opt/cenm/CM/getZoneToken.sh
             subPath: getZoneToken.sh
-          - name: notary-nodeinfo
-            mountPath: /opt/cenm/notary-nodeinfo
+          # - name: notary-nodeinfo
+          #   mountPath: /opt/cenm/notary-nodeinfo
       containers:
         - name: main
           securityContext:
@@ -63,6 +64,8 @@ spec:
           - |-
             cp -r CM-FILES/*.sh bin/
             chmod +x bin/*
+            mkdir -p /opt/cenm/notary-nodeinfo
+            bin/set-network-parameters.sh
             bin/run.sh
           {{- if .Values.livenessProbe.enabled }}
           livenessProbe:
@@ -91,8 +94,11 @@ spec:
           - name: nmap-conf
             mountPath: /opt/cenm/CM-FILES/run.sh
             subPath: run.sh
-          - name: notary-nodeinfo
-            mountPath: /opt/cenm/notary-nodeinfo
+          - name: nmap-conf
+            mountPath: /opt/cenm/CM-FILES/set-network-parameters.sh
+            subPath: set-network-parameters.sh
+          # - name: notary-nodeinfo
+          #   mountPath: /opt/cenm/notary-nodeinfo
           - name: nmap-h2
             mountPath: /opt/cenm/h2
           - name: nmap-etc
@@ -148,9 +154,9 @@ spec:
         - name: nmap-h2
           persistentVolumeClaim:
             claimName: {{ .Values.prefix }}-nmap-h2
-        - name: notary-nodeinfo
-          persistentVolumeClaim:
-            claimName: {{ .Values.prefix }}-notary-nodeinfo
+        # - name: notary-nodeinfo
+        #   persistentVolumeClaim:
+        #     claimName: {{ .Values.prefix }}-notary-nodeinfo
         - name: nmap-conf
           configMap:
             name: {{ .Values.prefix }}-nmap-conf
