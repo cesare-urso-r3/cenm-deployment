@@ -1,8 +1,50 @@
 #!/bin/sh
 
+{{ if eq .Values.bashDebug true }}
 set -x
+{{ end }}
 
-echo "Waiting for notary-nodeinfo/network-parameters-initial.conf ..."
+cat << EOF
+===================================================================================
+Network Migration Step:
+-----------------------
+The Kubernetes deployment has paused to allow you to perform manual migration steps
+
+To continue with the deployment the init-token container requires the 
+network-parameters-initial.conf file. This file should contain the network 
+parameters to be used for the network. Make sure that the notary defined in the
+network parameters is the OLD network notary node info file and NOT the new one.
+
+Make sure that the relative path is set correctly in the network parameters file.
+this should be
+
+    '{{ .Values.nmapJar.configPath }}/<notary-node-info-file>'
+
+The network paramters notary section should follow the template defined below:
+
+### network-parameters-init.conf ##################################################
+...
+
+notaries : [
+  {
+    notaryNodeInfoFile: "{{ .Values.nmapJar.configPath }}/<notary-node-info-file>"
+    validating = false
+  }
+]
+
+...
+###################################################################################
+
+1. Upload the 'network-parameters-initial.conf' file to the notary-nodeinfo directory
+    kubectl cp -c init-token network-parameters-initial.conf cenm/$(hostname):/opt/cenm/notary-nodeinfo/network-parameters-initial.conf
+
+Once the 'network-parameters-initial.conf' file has been uploaded, this script will
+carry on with the deployment and create a subzone token using these network parameters.
+===================================================================================
+Waiting for /opt/cenm/notary-nodeinfo/network-parameters-initial.conf
+===================================================================================
+EOF
+
 until [ -f notary-nodeinfo/network-parameters-initial.conf ]
 do
     sleep 10

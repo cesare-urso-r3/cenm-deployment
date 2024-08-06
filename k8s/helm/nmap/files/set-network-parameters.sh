@@ -5,7 +5,30 @@ set -x
 
 # Network migration steps #
 # -------------------------------------------------------------------------------------------------------- #
-echo "Waiting for notary nodeinfo file"
+cat << EOF
+===================================================================================
+Network Migration Step:
+-----------------------
+The Kubernetes deployment has paused to allow you to perform manual migration steps
+
+To continue with the deployment the main container requires the OLD network notary
+node info file. This file should be uploaded to the notary-nodeinfo directory.
+
+1. Upload the 'nodeInfo-[node-info-hash]' file to the notary-nodeinfo directory
+
+    kubectl cp -c main <notary-node-info-file> cenm/$(hostname):/opt/cenm/notary-nodeinfo/<notary-node-info-file>
+
+Once the 'nodeInfo-[node-info-hash]' file has been uploaded, this script will 
+automatically move the notary node info file from
+
+    - 'notary-nodeinfo/' to '{{ .Values.nmapJar.configPath }}/'
+
+and checksums will be displayed.
+===================================================================================
+Waiting for a file in /opt/cenm/notary-nodeinfo/
+matching the pattern 'nodeInfo*'
+===================================================================================
+EOF
 WAIT=true
 while [[ $WAIT == true ]]
 do
@@ -19,10 +42,58 @@ do
     done
 done
 sha256sum notary-nodeinfo/nodeInfo*
+echo "Copying notary node info files from notary-nodeinfo/ to {{ .Values.nmapJar.configPath }}/ ..."
 cp notary-nodeinfo/nodeInfo* {{ .Values.nmapJar.configPath }}/
 sha256sum {{ .Values.nmapJar.configPath }}/nodeInfo*
+nodeInfoFile=$(ls {{ .Values.nmapJar.configPath }}/nodeInfo* | rev | cut -d'/' -f 1 | rev)
+echo "Waiting for notary-nodeinfo/${nodeInfoFile} ... done."
+
+cat << EOF
+===================================================================================
+Network Migration Step:
+-----------------------
+The Kubernetes deployment has paused to allow you to perform manual migration steps
+
+To continue with the deployment the main container requires the 
+'network-parameters-initial.conf' file. This file should contain the network 
+parameters to be used for the network. Make sure that the notary defined in the
+network parameters is the OLD network notary node info file and NOT the new one.
+
+Make sure that the relative path is set correctly in the network parameters file.
+this should be
+
+    '{{ .Values.nmapJar.configPath }}/${nodeInfoFile}'
+
+The network paramters notary section should follow the template defined below:
+
+### network-parameters-init.conf ##################################################
+...
+
+notaries : [
+  {
+    notaryNodeInfoFile: "{{ .Values.nmapJar.configPath }}/${nodeInfoFile}"
+    validating = false
+  }
+]
+
+...
+###################################################################################
+
+1. Upload the 'network-parameters-initial.conf' file to the notary-nodeinfo directory
+
+    kubectl cp -c main network-parameters-initial.conf cenm/$(hostname):/opt/cenm/notary-nodeinfo/network-parameters-initial.conf
+
+Once the 'network-parameters-initial.conf' file has been uploaded, this script will
+carry on with the deployment and set the network parameters using the:
+
+    --ignore-notary-cert-checking-on-initial-set-network-parameters
+
+command line flag.
+===================================================================================
+Waiting for /opt/cenm/notary-nodeinfo/network-parameters-initial.conf
+===================================================================================
+EOF
 # -------------------------------------------------------------------------------------------------------- #
-echo "Waiting for notary-nodeinfo/network-parameters-initial.conf ..."
 if [ ! -f {{ .Values.nmapJar.configPath }}/network-parameters-initial-set-skip-succesfully ]
 then
     until [ -f notary-nodeinfo/network-parameters-initial.conf ]
